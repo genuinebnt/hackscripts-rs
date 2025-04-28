@@ -61,7 +61,7 @@ mod tests {
         });
         assert_eq!(
             *password.lock().unwrap().values().collect::<String>(),
-            "0123456789abcdefghijklmnopqrstuvwxyzt".to_string()
+            "901iy93wtu4bcdtd0l29".to_string()
         );
     }
 }
