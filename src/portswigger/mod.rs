@@ -1,1 +1,1 @@
-pub mod sql_brute;
+pub mod sql_injection;
